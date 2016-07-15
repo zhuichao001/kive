@@ -1,0 +1,263 @@
+#-*- coding:utf-8 -*-
+import socket, select, errno
+import os,sys
+import time
+import heapq
+import signal
+import client
+import hub
+import gvar
+import util
+import traceback
+
+
+class engine:
+    class Status:
+        def __init__(self):
+            self.n = 0
+            self.msgs = 0
+            self.qps = 0
+            self.max_qps = 0
+            self.last_n = 0
+            self.last_msgs = 0
+            self.last_time = 0
+ 
+            self.remotes = {}
+            self.remotes_n = 0
+            self.last_remotes_n = 0
+
+            self.last_print = 0
+
+        def get_remotes(self):
+            return sum([n for n in self.remotes.values()])
+
+        def add_remote(self, fd, id):
+            #self.remotes.setdefault(fd, set()).add(id)
+            self.remotes[fd] = self.remotes.setdefault(fd, 0) + 1
+            #print self.remotes
+
+        def del_remote(self, fd):
+            if self.remotes.get(fd):
+                del self.remotes[fd]
+
+        def clear_remote(self, con):
+            self.remotes[con.fileno()].clear()
+
+        def close(self, fd):
+            self.n -= 1
+            #self.del_remote(fd)
+
+        def update(self):
+            if self.msgs == self.last_msgs and self.n == self.last_n and self.last_remotes_n == self.remotes_n:
+                return False
+
+            now = time.time()
+            self.qps = int(float(self.msgs - self.last_msgs) / float(now - self.last_time))
+            if self.qps > self.max_qps:
+               self.max_qps = self.qps
+
+            self.remotes_n = self.get_remotes()
+            self.last_n = self.n
+            self.last_msgs = self.msgs
+            self.last_time = now
+            self.last_remotes_n = self.remotes_n
+            return True
+
+        def Print(self):
+    	    print util.hour_min_sec(), "[Status: remotes=%d, connections=%d, msgs=%d, qps=%d, max_qps=%d]" % (self.get_remotes(), self.n, self.msgs, self.qps, self.max_qps)
+            self.last_print = time.time()
+
+    def __init__(self):
+        self.epoll = select.epoll()
+        self.timers = []
+
+        self.fd2con   = {}
+        self.incache  = {}
+        self.outcache = {} #outcache for send
+
+        #handlers
+        self.inHandlers      = {}
+        self.onDataHandlers  = {}
+        self.onCloseHandlers = {}
+        self.onOutHandlers   = {}
+
+        #status
+        self.status = engine.Status()
+        self.addtimer(1, self.updateStatus);
+
+    def updateStatus(self):
+
+        if self.status.update() or time.time()-self.status.last_print>10:
+            self.status.Print()
+        self.addtimer(1, self.updateStatus);
+        
+    #def addcycle(self, cycle, callback, args=()); #TODO
+
+    def addtimer(self, after_sec, callback, args=()):
+	heapq.heappush(self.timers, (time.time()+after_sec, callback, args))
+   
+    def register(self, con, in_handler, data_handler, out_handler=None, close_handler=None):
+        fd = con.fileno()
+
+        self.fd2con[fd]           =  con
+        self.incache[fd]          =  ""
+        self.outcache[fd]         =  ""
+        self.inHandlers[fd]	  =  in_handler
+        self.onDataHandlers[fd]   =  data_handler
+        self.onCloseHandlers[fd]  =  close_handler
+        self.onOutHandlers[fd]    =  out_handler
+
+        self.epoll.register(fd, select.EPOLLIN|select.EPOLLET|select.EPOLLHUP|select.EPOLLERR)
+
+    def bind(self, port):
+        svrsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        svrsocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+        svrsocket.bind(("0.0.0.0", port))
+        svrsocket.listen(1024768)
+        svrsocket.setblocking(0)
+	self.register(svrsocket, self.accept, None)
+	return svrsocket
+
+    def connect(self, ip, port):
+        con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        con.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        con.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        con.setblocking(0)
+        err = con.connect_ex((ip, port))
+        if err == errno.EINPROGRESS: #ok
+            pass
+        elif err == errno.EADDRNOTAVAIL: #not available
+            pass
+        self.status.n += 1
+        #print os.strerror(err)
+        self.register(con, self.receive, client.on_data)
+        fd = con.fileno()
+        if gvar.Debug:
+            print fd, "connected"
+        return fd
+
+    def send(self, fd, data):
+        if not self.fd2con.get(fd):
+            print "Warning:", fd, "has been closed."
+            return
+        try:
+            self.outcache[fd] = self.outcache.setdefault(fd, "") + data
+            try:
+                self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
+            except:
+                self.epoll.register(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
+        except:
+            traceback.print_exc()
+
+    def run(self):
+        while 1:
+            self.lookup()
+
+    def lookuptimers(self):
+        left_sec = 0.001
+        now = time.time()
+        while self.timers:
+	    sec, callback, args = heapq.heappop(self.timers)
+            if sec<=now:
+		callback(*args)
+	    else:
+		heapq.heappush(self.timers, (sec, callback, args))
+                if sec - now > left_sec:
+               	     left_sec = sec - now
+                break
+        return left_sec
+
+    def receive(self, con):
+        fd = con.fileno()
+        try:
+            tmp = con.recv(1024000)
+            if not tmp and not self.incache.get(fd):
+                self.closeClient(fd)
+                return -1
+            else:
+                self.incache[fd] = self.incache.setdefault(fd,"") + tmp
+                return 0
+        except socket.error, msg:
+            if msg.errno == errno.EAGAIN:
+                n = self.onDataHandlers[fd](fd, self.incache[fd])
+                self.incache[fd] = self.incache[fd][n:]
+                self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
+                return 1
+            else:
+                self.closeClient(fd)
+                return -1
+
+    def accept(self, svr_con):
+        try:
+            con, address = svr_con.accept()
+            con.setblocking(0)
+            self.register(con, self.receive, hub.on_data)
+            self.status.n += 1
+            #print con.fileno(), "connected"
+            return 0
+        except:
+            #traceback.print_exc()
+            return -1
+
+    def lookup(self):
+	sec = self.lookuptimers()
+
+        events = self.epoll.poll(sec) #空等时间1毫秒
+        for fd, event in events:
+            con = self.fd2con.get(fd)
+            try:
+                if event & select.EPOLLIN:
+                    while 1:
+                        err = self.inHandlers[fd](con)
+                        if err!=0:
+                            break
+                elif event & select.EPOLLOUT:
+                    if gvar.Debug:
+                        print fd, "EPOLLOUT"
+                    try:
+                        response = self.outcache[fd]
+                        while len(response) > 0:
+                            written = self.fd2con.get(fd).send(response)  
+                            response = response[written:]  
+			self.outcache[fd] = ""
+                        if self.onOutHandlers.get(fd):
+                            self.onOutHandlers[fd]()
+                    except socket.error, err_msg:
+                        print("Error:%d send failed: err_msg=%s" % (fd, str(err_msg)) )
+                        self.closeClient(fd)
+                    except Exception,e:
+                        print("write Error:",str(e))
+                    self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
+                elif event & select.EPOLLHUP:
+                    print("!!!!!!select.EPOLLHUP,fileno=",fd)
+                    self.closeClient(fd)
+                    self.epoll.unregister(fd)
+                    if self.onCloseHandlers.get(fd):
+                        self.onCloseHandlers[fd]()
+                elif event & select.EPOLLERR:
+                    print("!!!!!!select.EPOLLERR,fileno=", fd)
+                    self.closeClient(fd)
+                    self.epoll.unregister(fd)
+                    if self.onCloseHandlers.get(fd):
+                        self.onCloseHandlers[fd]()
+                else:
+                    print("!!!unknown event:", event)
+            except:
+		traceback.print_exc()
+
+
+    def closeClient(self, fd):
+        self.status.close(fd)
+        if gvar.Debug:
+            print fd, "closed"
+        try:
+            if fd in self.fd2con:
+                self.fd2con[fd].close()
+            del self.fd2con[fd]
+            del self.incache[fd]
+            del self.outcache[fd]
+            del self.onDataHandlers[fd]
+            del self.onCloseHandlers[fd]
+            del self.onOutHandlers[fd]
+        except Exception,e:
+	    traceback.print_exc()
