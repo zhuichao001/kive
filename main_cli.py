@@ -10,7 +10,7 @@ import struct
 import getconfig
 import engine
 import gvar
-import httplib
+import http_protocol
 import util
 import traceback
 
@@ -19,7 +19,7 @@ ip = util.getip().replace(".", "_")
 def timeout(fd):
     try:
         url = "/frontier_test/?id=%s_%d" % (ip, fd)
-        gvar.Engine().send(fd, httplib.req_headers(url, "10.4.43.155"))
+        gvar.Engine().send(fd, http_protocol.req_headers(url, "10.4.43.155"))
     except:
         print "err fd=", fd
         traceback.print_exc()        

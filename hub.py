@@ -8,12 +8,12 @@ import random
 import struct
 import client
 import gvar
-import httplib
+import http_protocol
 
 
 def sendResponse(fd):
     e = gvar.Engine()
-    response = httplib.responseData("[Keep-Alive Test connections=%d, msgs=%d, qps=%d, max_qps=%d]" % (e.status.n, e.status.msgs, e.status.qps, e.status.max_qps))
+    response = http_protocol.responseData("[Keep-Alive Test connections=%d, msgs=%d, qps=%d, max_qps=%d]" % (e.status.n, e.status.msgs, e.status.qps, e.status.max_qps))
     e.send(fd, response)
 
 def on_http_data(fd, http_req):
