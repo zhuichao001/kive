@@ -8,6 +8,7 @@ import client
 import hub
 import gvar
 import util
+import random
 import traceback
 
 
@@ -21,7 +22,7 @@ class engine:
             self.last_n = 0
             self.last_msgs = 0
             self.last_time = 0
- 
+
             self.remotes = {}
             self.remotes_n = 0
             self.last_remotes_n = 0
@@ -32,9 +33,7 @@ class engine:
             return sum([n for n in self.remotes.values()])
 
         def add_remote(self, fd, id):
-            #self.remotes.setdefault(fd, set()).add(id)
-            self.remotes[fd] = self.remotes.setdefault(fd, 0) + 1
-            #print self.remotes
+            self.remotes[fd] = self.remotes.get(fd, 0) + 1
 
         def del_remote(self, fd):
             if self.remotes.get(fd):
@@ -64,10 +63,11 @@ class engine:
             return True
 
         def Print(self):
-    	    print util.hour_min_sec(), "[Status: remotes=%d, connections=%d, msgs=%d, qps=%d, max_qps=%d]" % (self.get_remotes(), self.n, self.msgs, self.qps, self.max_qps)
+            print util.hour_min_sec(), "[Status: remotes=%d, connections=%d, msgs=%d, qps=%d, max_qps=%d]" % (self.get_remotes(), self.n, self.msgs, self.qps, self.max_qps)
             self.last_print = time.time()
 
     def __init__(self):
+        self.is_server = False
         self.epoll = select.epoll()
         self.timers = []
 
@@ -86,37 +86,57 @@ class engine:
         self.addtimer(1, self.updateStatus);
 
     def updateStatus(self):
-
         if self.status.update() or time.time()-self.status.last_print>10:
             self.status.Print()
         self.addtimer(1, self.updateStatus);
-        
     #def addcycle(self, cycle, callback, args=()); #TODO
 
     def addtimer(self, after_sec, callback, args=()):
-	heapq.heappush(self.timers, (time.time()+after_sec, callback, args))
-   
+        heapq.heappush(self.timers, (time.time()+after_sec, callback, args))
+
     def register(self, con, in_handler, data_handler, out_handler=None, close_handler=None):
         fd = con.fileno()
 
         self.fd2con[fd]           =  con
         self.incache[fd]          =  ""
         self.outcache[fd]         =  ""
-        self.inHandlers[fd]	  =  in_handler
+        self.inHandlers[fd]       =  in_handler
         self.onDataHandlers[fd]   =  data_handler
         self.onCloseHandlers[fd]  =  close_handler
         self.onOutHandlers[fd]    =  out_handler
 
-        self.epoll.register(fd, select.EPOLLIN|select.EPOLLET|select.EPOLLHUP|select.EPOLLERR)
+        self.status.n += 1
+        self.epoll.register(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
+
+    def unregister(self, fd):
+        self.status.close(fd)
+        del self.fd2con[fd]
+        del self.incache[fd]
+        del self.outcache[fd]
+        del self.onDataHandlers[fd]
+        del self.onCloseHandlers[fd]
+        del self.onOutHandlers[fd]
 
     def bind(self, port):
+        self.is_server = True
         svrsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         svrsocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         svrsocket.bind(("0.0.0.0", port))
+        self.register(svrsocket, self.accept, None)
         svrsocket.listen(1024768)
         svrsocket.setblocking(0)
-	self.register(svrsocket, self.accept, None)
-	return svrsocket
+        return svrsocket
+
+    def accept(self, svr_con):
+        try:
+            con, address = svr_con.accept()
+            con.setblocking(0)
+            self.register(con, self.receive, hub.on_data)
+            return 0
+        except socket.error, msg:
+            if msg.errno != errno.EAGAIN:
+                traceback.print_exc()
+            return -1
 
     def connect(self, ip, port):
         con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -127,45 +147,44 @@ class engine:
         if err == errno.EINPROGRESS: #ok
             pass
         elif err == errno.EADDRNOTAVAIL: #not available
-            pass
-        self.status.n += 1
-        #print os.strerror(err)
+            return -1
         self.register(con, self.receive, client.on_data)
-        fd = con.fileno()
         if gvar.Debug:
-            print fd, "connected"
-        return fd
+            print con.fileno(), "connected"
+        return con.fileno()
+
+    def send_delay(self, fd, data, seconds=1):
+        self.addtimer(seconds, self.send, (fd, data))
 
     def send(self, fd, data):
         if not self.fd2con.get(fd):
-            print "Warning:", fd, "has been closed."
-            return
+            print "Warning: before send,", fd, "has been closed."
+            return -1
+
+        written = self.fd2con.get(fd).send(data)
+        left = len(data)-written
+        if left==0:
+            return 0
+        self.outcache[fd] = self.outcache.get(fd, "") + data[written:]
         try:
-            self.outcache[fd] = self.outcache.setdefault(fd, "") + data
-            try:
-                self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
-            except:
-                self.epoll.register(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
+            self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
         except:
-            traceback.print_exc()
+            self.epoll.register(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
+        return left
 
     def run(self):
         while 1:
             self.lookup()
 
     def lookuptimers(self):
-        left_sec = 0.001
         now = time.time()
         while self.timers:
-	    sec, callback, args = heapq.heappop(self.timers)
-            if sec<=now:
-		callback(*args)
-	    else:
-		heapq.heappush(self.timers, (sec, callback, args))
-                if sec - now > left_sec:
-               	     left_sec = sec - now
-                break
-        return left_sec
+            sec, callback, args = heapq.heappop(self.timers)
+            if sec<now:
+                callback(*args)
+            else:
+                heapq.heappush(self.timers, (sec, callback, args))
+                return 0.001 if (sec-now)<0.001 else (sec-now)
 
     def receive(self, con):
         fd = con.fileno()
@@ -175,7 +194,7 @@ class engine:
                 self.closeClient(fd)
                 return -1
             else:
-                self.incache[fd] = self.incache.setdefault(fd,"") + tmp
+                self.incache[fd] = self.incache.get(fd,"") + tmp
                 return 0
         except socket.error, msg:
             if msg.errno == errno.EAGAIN:
@@ -183,31 +202,19 @@ class engine:
                 self.incache[fd] = self.incache[fd][n:]
                 self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
                 return 1
-            else:
-                self.closeClient(fd)
+            elif msg.errno == errno.EWOULDBLOCK:
+                print "fd = %d ,msg.errno == errno.EWOULDBLOCK" % (fd)
                 return -1
 
-    def accept(self, svr_con):
-        try:
-            con, address = svr_con.accept()
-            con.setblocking(0)
-            self.register(con, self.receive, hub.on_data)
-            self.status.n += 1
-            #print con.fileno(), "connected"
-            return 0
-        except:
-            #traceback.print_exc()
-            return -1
-
     def lookup(self):
-	sec = self.lookuptimers()
+        sec = self.lookuptimers()
 
         events = self.epoll.poll(sec) #空等时间1毫秒
         for fd, event in events:
             con = self.fd2con.get(fd)
             try:
                 if event & select.EPOLLIN:
-                    while 1:
+                    while 1:  #TODO add allin action
                         err = self.inHandlers[fd](con)
                         if err!=0:
                             break
@@ -217,47 +224,44 @@ class engine:
                     try:
                         response = self.outcache[fd]
                         while len(response) > 0:
-                            written = self.fd2con.get(fd).send(response)  
-                            response = response[written:]  
-			self.outcache[fd] = ""
+                            written = self.fd2con.get(fd).send(response)
+                            response = response[written:]
+                        self.outcache[fd] = ""
                         if self.onOutHandlers.get(fd):
                             self.onOutHandlers[fd]()
+                        self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
                     except socket.error, err_msg:
                         print("Error:%d send failed: err_msg=%s" % (fd, str(err_msg)) )
                         self.closeClient(fd)
                     except Exception,e:
                         print("write Error:",str(e))
-                    self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
                 elif event & select.EPOLLHUP:
                     print("!!!!!!select.EPOLLHUP,fileno=",fd)
-                    self.closeClient(fd)
-                    self.epoll.unregister(fd)
                     if self.onCloseHandlers.get(fd):
                         self.onCloseHandlers[fd]()
+                    self.closeClient(fd)
                 elif event & select.EPOLLERR:
                     print("!!!!!!select.EPOLLERR,fileno=", fd)
-                    self.closeClient(fd)
-                    self.epoll.unregister(fd)
                     if self.onCloseHandlers.get(fd):
                         self.onCloseHandlers[fd]()
+                    self.closeClient(fd)
                 else:
                     print("!!!unknown event:", event)
             except:
-		traceback.print_exc()
+                traceback.print_exc()
 
 
     def closeClient(self, fd):
-        self.status.close(fd)
         if gvar.Debug:
             print fd, "closed"
         try:
+            self.unregister(fd)
+            self.epoll.unregister(fd)
             if fd in self.fd2con:
                 self.fd2con[fd].close()
-            del self.fd2con[fd]
-            del self.incache[fd]
-            del self.outcache[fd]
-            del self.onDataHandlers[fd]
-            del self.onCloseHandlers[fd]
-            del self.onOutHandlers[fd]
         except Exception,e:
-	    traceback.print_exc()
+            traceback.print_exc()
+
+if __name__ == '__main__':
+    e=engine()
+    e.run()

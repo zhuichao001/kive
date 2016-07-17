@@ -12,8 +12,7 @@ import http_protocol
 
 
 def on_http_data(fd, http_body):
-    print "body:", http_body
-    #gvar.Engine().addtimer(6, lambda c: engine.send(c, http_protocol.req_headers("/", "10.4.43.155")), (fd,))
+    print "MSG:", http_body
 
 def on_data(fd, data):
     def on_socket_data(data):
