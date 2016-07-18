@@ -5,12 +5,10 @@ def req_headers(url, host, is_gzip=False):
         gzip_param = ""
     headers = \
 "GET %s HTTP/1.1\r\n\
-Accept: application/vnd.nsq; version=1.0\r\n\
+Accept: application/text; version=1.0\r\n\
 Accept-Language: zh-CN,zh;q=0.8\r\n\
 Host: %s\r\n\
 %s\
-X-Requested-With: XMLHttpRequest\r\n\
-X-UserAgent: nsqadmin/v0.3.7\r\n\
 Connection: Keep-Alive\r\n\r\n" % (url, host, gzip_param)
     return headers
 

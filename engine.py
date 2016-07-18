@@ -150,6 +150,7 @@ class engine:
         if err == errno.EINPROGRESS: #ok
             pass
         elif err == errno.EADDRNOTAVAIL: #not available
+            pass
             return -1
         self.register(con, self.receive, client.on_data)
         return con.fileno()
@@ -161,18 +162,22 @@ class engine:
         if not self.fd2con.get(fd):
             print "Warning: before send,", fd, "has been closed."
             return -1
-
-        written = self.fd2con.get(fd).send(data)
-        left = len(data)-written
-        if left==0:
-            return 0
-
-        self.outcache[fd] = self.outcache.get(fd, "") + data[written:]
+        if gvar.Debug:
+            print "::::::\n", data
         try:
-            self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
-        except:
-            self.epoll.register(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
-        return left
+            written = self.fd2con.get(fd).send(data)
+            if len(data)-written==0:
+                return written
+
+            self.outcache[fd] = self.outcache.get(fd, "") + data[written:]
+            try:
+                self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
+            except:
+                self.epoll.register(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
+            return written
+        except Exception, e:
+            print "Excepiton when send:", str(e)
+        return 0
 
     def run(self):
         while 1:

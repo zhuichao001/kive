@@ -30,5 +30,5 @@ def main(host, port, clients, interval):
 if __name__ == '__main__':
     host, port, clients, interval, at_sec = getconfig.getconfig()
     gvar.SetEngine(engine.engine())
-    gvar.abtimer(at_sec, main, (host, port, clients, interval))
+    gvar.Engine().abtimer(at_sec, main, (host, port, clients, interval))
     gvar.Engine().run()

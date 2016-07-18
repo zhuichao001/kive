@@ -7,26 +7,25 @@ import json
 import random
 import struct
 
-import config
-import client
+import getconfig
+import http_protocol
 import engine
 
 engine = engine.engine()
 
 def build(ip, port):
-    con = engine.connect(ip, port)
-    engine.register(con, engine.receive, client.on_data)
-    return con
+    fd = engine.connect(ip, port)
+    return fd
 
-def timeout(con):
-    engine.send(con, client.req_headers("/", "10.4.43.155"))
-    engine.addtimer(2, timeout, (con,))
+def timeout(fd):
+    engine.send(fd, http_protocol.req_headers("/", "frontier.snssdk.com"))
+    engine.addtimer(2, timeout, (fd,))
 
 def test():
-    ip, port, clients, interval = config.get_config()
+    ip, port, clients, interval, at_sec = getconfig.getconfig()
     for i in range(3):
-        con = build(ip, port)
-        engine.addtimer(1, timeout, (con,))
+        fd = build(ip, port)
+        engine.addtimer(1, timeout, (fd,))
     engine.run()
 
 if __name__ == '__main__':
