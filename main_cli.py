@@ -13,10 +13,8 @@ import http_protocol
 import util
 import traceback
 
-host, port, clients, interval = getconfig.getconfig()
-localip = util.getip().replace(".", "_")
-
-def main():
+def main(host, port, clients, interval):
+    localip = util.getip().replace(".", "_")
     fds = []
     print ">>>>>>>>>>>>>connect start:", time.time()
     for i in range(clients):
@@ -26,10 +24,11 @@ def main():
 
     for fd in fds:
         url = "/frontier_test/?id=%s_%d" % (localip, fd)
-        gvar.Engine().send_delay(fd, http_protocol.req_headers(url, "10.4.43.155"), random.random()*interval*2)
+        gvar.Engine().send_delay(fd, http_protocol.req_headers(url, host), random.random()*interval*2)
     print "<<<<<<<<<<<<<connect end:", time.time()
  
 if __name__ == '__main__':
+    host, port, clients, interval, at_sec = getconfig.getconfig()
     gvar.SetEngine(engine.engine())
-    main()
+    gvar.abtimer(at_sec, main, (host, port, clients, interval))
     gvar.Engine().run()

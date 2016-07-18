@@ -94,6 +94,9 @@ class engine:
     def addtimer(self, after_sec, callback, args=()):
         heapq.heappush(self.timers, (time.time()+after_sec, callback, args))
 
+    def abtimer(self, at_sec, callback, args=()):
+        heapq.heappush(self.timers, (at_sec, callback, args))
+
     def register(self, con, in_handler, data_handler, out_handler=None, close_handler=None):
         fd = con.fileno()
 
@@ -149,8 +152,6 @@ class engine:
         elif err == errno.EADDRNOTAVAIL: #not available
             return -1
         self.register(con, self.receive, client.on_data)
-        if gvar.Debug:
-            print con.fileno(), "connected"
         return con.fileno()
 
     def send_delay(self, fd, data, seconds=1):
@@ -165,6 +166,7 @@ class engine:
         left = len(data)-written
         if left==0:
             return 0
+
         self.outcache[fd] = self.outcache.get(fd, "") + data[written:]
         try:
             self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
@@ -219,8 +221,6 @@ class engine:
                         if err!=0:
                             break
                 elif event & select.EPOLLOUT:
-                    if gvar.Debug:
-                        print fd, "EPOLLOUT"
                     try:
                         response = self.outcache[fd]
                         while len(response) > 0:
@@ -250,10 +250,7 @@ class engine:
             except:
                 traceback.print_exc()
 
-
     def closeClient(self, fd):
-        if gvar.Debug:
-            print fd, "closed"
         try:
             self.unregister(fd)
             self.epoll.unregister(fd)
