@@ -173,8 +173,8 @@ class engine:
             if msg.errno != errno.EAGAIN:
                 print "Excepiton not EAGAIN when [fd=%d] send:" % (fd), str(msg)
                 self.closeClient(fd)
-        else:
-            print "Excepiton EAGAIN when [fd=%d] send:" % (fd), str(msg)
+            else:
+                print "Excepiton EAGAIN when [fd=%d] send:" % (fd), str(msg)
         except Exception, e:
             print "Excepiton when [fd=%d] send:" % (fd), str(e)
             self.closeClient(fd)
