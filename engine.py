@@ -85,6 +85,7 @@ class engine:
         self.status = engine.Status()
         self.addtimer(1, self.updateStatus);
 
+
     def updateStatus(self):
         if self.status.update() or time.time()-self.status.last_print>10:
             self.status.Print()
@@ -99,6 +100,8 @@ class engine:
 
     def register(self, con, in_handler, data_handler, out_handler=None, close_handler=None):
         fd = con.fileno()
+        con.setsockopt(socket.SOL_SOCKET,socket.SO_SNDBUF,4096) 
+        con.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,4096) 
 
         self.fd2con[fd]           =  con
         self.incache[fd]          =  ""
