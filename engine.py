@@ -150,42 +150,38 @@ class engine:
         if err == errno.EINPROGRESS: #ok
             pass
         elif err == errno.EADDRNOTAVAIL: #not available
-            pass
             return -1
         self.register(con, self.receive, client.on_data)
         return con.fileno()
 
     def send_delay(self, fd, data, seconds=1):
-        self.addtimer(seconds, self.send, (fd, data))
+        self.outcache[fd] += data
+        self.addtimer(seconds, self.send_out, (fd, ))
 
-    def send(self, fd, data):
-        written = 0
+    def send_out(self, fd):
         if not self.fd2con.get(fd):
             print "Warning: before send,", fd, "has been closed."
             return -1
-        if gvar.Debug:
-            print "::::::\n", data
         try:
-            written = self.fd2con.get(fd).send(data)
-            if len(data)-written==0:
-                return written
+            while len(self.outcache[fd]) > 0:
+                written = self.fd2con.get(fd).send(self.outcache[fd])
+                if gvar.Debug:
+                    print "send_out written:", written
+                self.outcache[fd] = self.outcache[fd][written:]
+            if self.onOutHandlers.get(fd):
+                self.onOutHandlers[fd]()
+            self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
         except socket.error, msg:
-            if msg.errno != errno.EAGAIN:
-                print "Excepiton not EAGAIN when [fd=%d] send:" % (fd), str(msg)
-                self.closeClient(fd)
+            if msg.errno == errno.EAGAIN:
+                if gvar.Debug:
+                    print fd, "send again"
+                self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
             else:
-                print "Excepiton EAGAIN when [fd=%d] send:" % (fd), str(msg)
+                print fd, "send faliled", msg
+                self.closeClient(fd)
         except Exception, e:
-            print "Excepiton when [fd=%d] send:" % (fd), str(e)
+            print("Error:%d send failed: err_msg=%s" % (fd, str(err_msg)) )
             self.closeClient(fd)
-
-        self.outcache[fd] = self.outcache.get(fd, "") + data[written:]
-        try:
-            self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
-        except:
-            self.epoll.register(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
-
-        return written
 
     def run(self):
         while 1:
@@ -205,20 +201,30 @@ class engine:
         fd = con.fileno()
         try:
             tmp = con.recv(1024000)
-            if not tmp and not self.incache.get(fd):
+            if tmp: #and not self.incache.get(fd):
+                if gvar.Debug:
+                    print "READ:", fd, tmp
+                self.incache[fd] = self.incache.get(fd,"") + tmp
+                return 0
+            else:
+                if gvar.Debug:
+                    print "EMPTY READ:", fd, tmp
+                return -1
+        except socket.error, msg:
+            if msg.errno == errno.EAGAIN :
+                if gvar.Debug:
+                    print "EAGAIN READ:", fd
+                n = self.onDataHandlers[fd](fd, self.incache[fd])
+                self.incache[fd] = self.incache[fd][n:]
+                self.epoll.modify(fd, select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
+                return 1
+            elif msg.errno == errno.EWOULDBLOCK:
+                print fd, "errno.EWOULDBLOCK"
                 self.closeClient(fd)
                 return -1
             else:
-                self.incache[fd] = self.incache.get(fd,"") + tmp
-                return 0
-        except socket.error, msg:
-            if msg.errno == errno.EAGAIN:
-                n = self.onDataHandlers[fd](fd, self.incache[fd])
-                self.incache[fd] = self.incache[fd][n:]
-                self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
-                return 1
-            elif msg.errno == errno.EWOULDBLOCK:
-                print "fd = %d ,msg.errno == errno.EWOULDBLOCK" % (fd)
+                print "error:fd = %d." % (fd), str(msg)
+                self.closeClient(fd)
                 return -1
 
     def lookup(self):
@@ -228,30 +234,7 @@ class engine:
         for fd, event in events:
             con = self.fd2con.get(fd)
             try:
-                if event & select.EPOLLIN:
-                    while 1:  #TODO add allin action
-                        err = self.inHandlers[fd](con)
-                        if err!=0:
-                            break
-                elif event & select.EPOLLOUT:
-                    try:
-                        while len(self.outcache[fd]) > 0:
-                            written = self.fd2con.get(fd).send(self.outcache[fd])
-                            self.outcache[fd] = self.outcache[fd][written:]
-                        if self.onOutHandlers.get(fd):
-                            self.onOutHandlers[fd]()
-                        self.epoll.modify(fd, select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
-                    except socket.error, msg:
-                        if msg.errno == errno.EAGAIN:
-                            print fd, "send again"
-                            self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
-			else:
-                            print fd, "send faliled", msg
-                            self.closeClient(fd)
-                    except Exception, e:
-                        print("Error:%d send failed: err_msg=%s" % (fd, str(err_msg)) )
-                        self.closeClient(fd)
-                elif event & select.EPOLLHUP:
+                if event & select.EPOLLHUP:
                     print("!!!!!!select.EPOLLHUP,fileno=",fd)
                     if self.onCloseHandlers.get(fd):
                         self.onCloseHandlers[fd]()
@@ -261,6 +244,16 @@ class engine:
                     if self.onCloseHandlers.get(fd):
                         self.onCloseHandlers[fd]()
                     self.closeClient(fd)
+                elif event & select.EPOLLIN:
+                    if gvar.Debug:
+                        print "select.EPOLLIN"
+                    while 1:
+                        err = self.inHandlers[fd](con)
+                        if err!=0:
+                            break
+                elif event & select.EPOLLOUT:
+                    print "select.EPOLLOUT"
+                    self.send_out(fd)
                 else:
                     print("!!!unknown event:", event)
             except:

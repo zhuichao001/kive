@@ -25,6 +25,7 @@ def main(host, port, clients, interval):
     for fd in fds:
         url = "/frontier_test/?id=%s_%d" % (localip, fd)
         gvar.Engine().send_delay(fd, http_protocol.req_headers(url, host), random.random()*interval*2)
+
     print "<<<<<<<<<<<<<connect end:", time.time()
  
 if __name__ == '__main__':
