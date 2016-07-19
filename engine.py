@@ -169,9 +169,12 @@ class engine:
             written = self.fd2con.get(fd).send(data)
             if len(data)-written==0:
                 return written
-
+        except socket.error, msg:
+            if msg.errno != errno.EAGAIN:
+                self.closeClient(fd)
         except Exception, e:
             print "Excepiton when [fd=%d] send:" % (fd), str(e)
+            self.closeClient(fd)
 
         self.outcache[fd] = self.outcache.get(fd, "") + data[written:]
         try:
@@ -236,12 +239,14 @@ class engine:
                         self.outcache[fd] = ""
                         if self.onOutHandlers.get(fd):
                             self.onOutHandlers[fd]()
-                        self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
-                    except socket.error, err_msg:
+#self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
+                    except socket.error, msg:
+                        if msg.errno == errno.EAGAIN:
+                            print fd, "send again"
+                            self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
+                    except Exception, e:
                         print("Error:%d send failed: err_msg=%s" % (fd, str(err_msg)) )
                         self.closeClient(fd)
-                    except Exception,e:
-                        print("write Error:",str(e))
                 elif event & select.EPOLLHUP:
                     print("!!!!!!select.EPOLLHUP,fileno=",fd)
                     if self.onCloseHandlers.get(fd):
