@@ -171,7 +171,10 @@ class engine:
                 return written
         except socket.error, msg:
             if msg.errno != errno.EAGAIN:
+                print "Excepiton not EAGAIN when [fd=%d] send:" % (fd), str(msg)
                 self.closeClient(fd)
+        else:
+            print "Excepiton EAGAIN when [fd=%d] send:" % (fd), str(msg)
         except Exception, e:
             print "Excepiton when [fd=%d] send:" % (fd), str(e)
             self.closeClient(fd)
@@ -232,18 +235,19 @@ class engine:
                             break
                 elif event & select.EPOLLOUT:
                     try:
-                        response = self.outcache[fd]
-                        while len(response) > 0:
-                            written = self.fd2con.get(fd).send(response)
-                            response = response[written:]
-                        self.outcache[fd] = ""
+                        while len(self.outcache[fd]) > 0:
+                            written = self.fd2con.get(fd).send(self.outcache[fd])
+                            self.outcache[fd] = self.outcache[fd][written:]
                         if self.onOutHandlers.get(fd):
                             self.onOutHandlers[fd]()
-#self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
+                        self.epoll.modify(fd, select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
                     except socket.error, msg:
                         if msg.errno == errno.EAGAIN:
                             print fd, "send again"
                             self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
+			else:
+                            print fd, "send faliled", msg
+                            self.closeClient(fd)
                     except Exception, e:
                         print("Error:%d send failed: err_msg=%s" % (fd, str(err_msg)) )
                         self.closeClient(fd)
