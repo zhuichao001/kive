@@ -159,6 +159,7 @@ class engine:
         self.addtimer(seconds, self.send, (fd, data))
 
     def send(self, fd, data):
+        written = 0
         if not self.fd2con.get(fd):
             print "Warning: before send,", fd, "has been closed."
             return -1
@@ -169,15 +170,16 @@ class engine:
             if len(data)-written==0:
                 return written
 
-            self.outcache[fd] = self.outcache.get(fd, "") + data[written:]
-            try:
-                self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
-            except:
-                self.epoll.register(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
-            return written
         except Exception, e:
-            print "Excepiton when send:", str(e)
-        return 0
+            print "Excepiton when [fd=%d] send:" % (fd), str(e)
+
+        self.outcache[fd] = self.outcache.get(fd, "") + data[written:]
+        try:
+            self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
+        except:
+            self.epoll.register(fd, select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR)
+
+        return written
 
     def run(self):
         while 1:
