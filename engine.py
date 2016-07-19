@@ -261,6 +261,7 @@ class engine:
 
     def closeClient(self, fd):
         try:
+            print "closeClient fd=",fd
             self.unregister(fd)
             self.epoll.unregister(fd)
             if fd in self.fd2con:
