@@ -10,6 +10,8 @@ import hub
 import engine
 import gvar
 
+gvar.Client = False
+
 if __name__ == '__main__':
     gvar.SetEngine(engine.engine())
     gvar.Engine().bind(port=6000)
