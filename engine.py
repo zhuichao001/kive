@@ -161,11 +161,16 @@ class engine:
         self.outcache[fd] += data
         self.addtimer(seconds, self.send_out, (fd, ))
 
+    def send_nodelay(self, fd, data):
+        self.outcache[fd] += data
+        self.send_out(fd)
+
     def send_out(self, fd):
         if not self.fd2con.get(fd):
             print "Warning: before send,", fd, "has been closed."
             return -1
         try:
+            print util.timestamp(), "to send_out", fd
             while len(self.outcache[fd]) > 0:
                 written = self.fd2con.get(fd).send(self.outcache[fd])
                 if gvar.Debug:
@@ -174,6 +179,7 @@ class engine:
             if self.onOutHandlers.get(fd):
                 self.onOutHandlers[fd]()
             self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
+            print util.timestamp(), "send_out!!!!!!!", fd
         except socket.error, msg:
             if msg.errno == errno.EAGAIN:
                 if gvar.Debug:
@@ -238,7 +244,7 @@ class engine:
             con = self.fd2con.get(fd)
             try:
                 if event & select.EPOLLHUP:
-                    print("!!!!!!select.EPOLLHUP,fileno=",fd)
+                    print util.timestamp(),"!!!!!!select.EPOLLHUP,fileno=",fd 
                     if self.onCloseHandlers.get(fd):
                         self.onCloseHandlers[fd]()
                     self.closeClient(fd)
@@ -255,7 +261,7 @@ class engine:
                         if err!=0:
                             break
                 elif event & select.EPOLLOUT:
-                    print "select.EPOLLOUT"
+                    print util.timestamp(),fd,"select.EPOLLOUT"
                     self.send_out(fd)
                 else:
                     print("!!!unknown event:", event)
