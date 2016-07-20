@@ -170,7 +170,8 @@ class engine:
             print "Warning: before send,", fd, "has been closed."
             return -1
         try:
-            print util.timestamp(), "to send_out", fd
+            if gvar.Client:
+                print util.timestamp(), "to send_out", fd
             while len(self.outcache[fd]) > 0:
                 written = self.fd2con.get(fd).send(self.outcache[fd])
                 if gvar.Debug:
@@ -179,7 +180,8 @@ class engine:
             if self.onOutHandlers.get(fd):
                 self.onOutHandlers[fd]()
             self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
-            print util.timestamp(), "send_out!!!!!!!", fd
+            if gvar.Client:
+                print util.timestamp(), "send_out!!!!!!!", fd
         except socket.error, msg:
             if msg.errno == errno.EAGAIN:
                 if gvar.Debug:
@@ -215,9 +217,10 @@ class engine:
                     print "READ:", fd, tmp
                 self.incache[fd] = self.incache.get(fd,"") + tmp
                 return 0
-            else:
+            else: # the oper side closed
                 if gvar.Debug:
                     print "EMPTY READ:", fd, tmp
+                self.closeClient(fd)
                 return -1
         except socket.error, msg:
             if msg.errno == errno.EAGAIN :
@@ -270,7 +273,8 @@ class engine:
 
     def closeClient(self, fd):
         try:
-            print "closeClient fd=",fd
+            if gvar.Debug:
+                print "closeClient fd=",fd
             self.unregister(fd)
             self.epoll.unregister(fd)
             if fd in self.fd2con:

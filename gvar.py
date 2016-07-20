@@ -4,6 +4,8 @@ eng = None
 Debug = False
 #Debug = True
 
+Client = True
+
 def Engine():
     return eng
 

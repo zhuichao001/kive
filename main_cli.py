@@ -38,6 +38,8 @@ def con_send(host, port):
     localip = util.getip().replace(".", "_")
     url = "/frontier_test/?id=%s_%d" % (localip, fd)
     gvar.Engine().send_nodelay(fd, http_protocol.req_headers(url, host))
+
+#gvar.Engine().addtimer(2, gvar.Engine().closeClient, (fd,))
  
 def main(host, port, clients, interval):
     fds = []
@@ -51,6 +53,7 @@ def main(host, port, clients, interval):
 if __name__ == '__main__':
     host, port, clients, interval, at_sec = getconfig.getconfig()
     print host, port, clients, interval, at_sec
+#clients,interval = 1,1
     gvar.SetEngine(engine.engine())
     main(host, port, clients, interval)
 #gvar.Engine().abtimer(at_sec, main, (host, port, clients, interval))
