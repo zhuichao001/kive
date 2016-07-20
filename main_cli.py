@@ -13,48 +13,27 @@ import http_protocol
 import util
 import traceback
 
-def main_old(host, port, clients, interval):
-    localip = util.getip().replace(".", "_")
-    fds = []
-    print ">>>>>>>>>>>>>connect start:", time.time()
-    for i in range(clients):
-        fd = gvar.Engine().connect(host, port)
-        if fd>0:
-            fds.append(fd)
-
-    for fd in fds:
-        url = "/frontier_test/?id=%s_%d" % (localip, fd)
-        gvar.Engine().send_delay(fd, http_protocol.req_headers(url, host), random.random()*interval*2)
-
-    print "<<<<<<<<<<<<<connect end:", time.time()
-
-def con_send(host, port):
-    fd = gvar.Engine().connect(host, port)
+def con_send():
+    fd = gvar.Engine().connect(gvar.host, gvar.port)
     if fd<0:
         print "Connect fd=-1"
         wait = random.random()*interval*2
-        gvar.Engine().addtimer(wait, con_send, (host, port,))
+        gvar.Engine().addtimer(wait, con_send, ())
         return
-    localip = util.getip().replace(".", "_")
-    url = "/frontier_test/?id=%s_%d" % (localip, fd)
-    gvar.Engine().send_nodelay(fd, http_protocol.req_headers(url, host))
+    gvar.Engine().send_nodelay(fd, http_protocol.req_data(fd))
 
-#gvar.Engine().addtimer(2, gvar.Engine().closeClient, (fd,))
- 
-def main(host, port, clients, interval):
+def main():
     fds = []
     print ">>>>>>>>>>>>>connect start:", time.time()
-    for i in range(clients):
-        wait = random.random()*interval*2
-        gvar.Engine().addtimer(wait, con_send, (host, port,))
-
+    for i in range(gvar.clients):
+        wait = random.random()*gvar.interval*2
+        gvar.Engine().addtimer(wait, con_send, ())
     print "<<<<<<<<<<<<<connect end:", time.time()
 
 if __name__ == '__main__':
-    host, port, clients, interval, at_sec = getconfig.getconfig()
-    print host, port, clients, interval, at_sec
-#clients,interval = 1,1
+    gvar.host, gvar.port, gvar.clients, gvar.interval, gvar.at_sec = getconfig.getconfig()
+    print gvar.host, gvar.port, gvar.clients, gvar.interval, gvar.at_sec
+#gvar.clients,gvar.interval = 1,1
     gvar.SetEngine(engine.engine())
-    main(host, port, clients, interval)
-#gvar.Engine().abtimer(at_sec, main, (host, port, clients, interval))
+    main()
     gvar.Engine().run()

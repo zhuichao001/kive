@@ -6,6 +6,12 @@ Debug = False
 
 Client = True
 
+host = ""
+port = 0
+clients = 0
+interval = 0
+at_sec = 0
+
 def Engine():
     return eng
 

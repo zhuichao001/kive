@@ -16,7 +16,7 @@ def sendResponse(fd):
     response = http_protocol.responseData("[Keep-Alive Test connections=%d, msgs=%d, qps=%d, max_qps=%d]" % (e.status.n, e.status.msgs, e.status.qps, e.status.max_qps))
     if gvar.Debug:
         print "sendResponse:", response
-    e.send_delay(fd, response, 0.1)
+    e.send_delay(fd, response, 0.001)
 
 def on_http_data(fd, http_req):
 

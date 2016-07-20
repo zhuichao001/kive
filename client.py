@@ -13,6 +13,7 @@ import http_protocol
 
 def on_http_data(fd, http_body):
     print "MSG:", http_body
+    gvar.Engine().send_delay(fd, http_protocol.req_data(fd), gvar.interval)
 
 def on_data(fd, data):
     def on_socket_data(data):
