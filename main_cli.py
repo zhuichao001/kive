@@ -26,14 +26,13 @@ def main():
     fds = []
     print ">>>>>>>>>>>>>connect start:", time.time()
     for i in range(gvar.clients):
-        wait = random.random()*gvar.interval*2
+        wait = random.random()*60
         gvar.Engine().addtimer(wait, con_send, ())
     print "<<<<<<<<<<<<<connect end:", time.time()
 
 if __name__ == '__main__':
     gvar.host, gvar.port, gvar.clients, gvar.interval, gvar.at_sec = getconfig.getconfig()
     print gvar.host, gvar.port, gvar.clients, gvar.interval, gvar.at_sec
-#gvar.clients,gvar.interval = 1,1
     gvar.SetEngine(engine.engine())
     main()
     gvar.Engine().run()

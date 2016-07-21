@@ -218,7 +218,7 @@ class engine:
                 self.incache[fd] = self.incache.get(fd,"") + tmp
                 return 0
             else: # the oper side closed
-                if gvar.Debug:
+                if gvar.Client:
                     print "EMPTY READ:", fd, tmp
                 self.closeClient(fd)
                 return -1
@@ -273,11 +273,12 @@ class engine:
 
     def closeClient(self, fd):
         try:
-            if gvar.Debug:
-                print "closeClient fd=",fd
+#if gvar.Debug:
+            print "closeClient fd=",fd
             self.unregister(fd)
             self.epoll.unregister(fd)
             if fd in self.fd2con:
+                self.fd2con[fd].shutdown(socket.SHUT_RDWR)
                 self.fd2con[fd].close()
         except Exception,e:
             traceback.print_exc()

@@ -13,7 +13,7 @@ def req_headers(url, host, is_gzip=False):
     headers = \
 "GET %s HTTP/1.1\r\n\
 Accept: application/text; version=1.0\r\n\
-Accept-Language: zh-CN,zh;q=0.8\r\n\
+Accept-Language: zh-CN,zh\r\n\
 Host: %s\r\n\
 %s\
 Connection: Keep-Alive\r\n\r\n" % (url, host, gzip_param)
