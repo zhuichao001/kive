@@ -273,8 +273,8 @@ class engine:
 
     def closeClient(self, fd):
         try:
-#if gvar.Debug:
-            print "closeClient fd=",fd
+            if gvar.Debug:
+                print "closeClient fd=",fd
             self.unregister(fd)
             self.epoll.unregister(fd)
             if fd in self.fd2con:
