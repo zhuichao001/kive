@@ -3,7 +3,6 @@
 import socket
 import struct
 import fcntl
-
 import time
 
 def getip(ethname="eth0"):
@@ -15,6 +14,14 @@ def hour_min_sec():
 
 def timestamp():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
+
+def timeit(func):  
+	def wrapper():  
+		start = time.clock()  
+		func()  
+		end =time.clock()  
+		print 'used:', end - start  
+	return wrapper  
 
 if __name__ == '__main__':
     print timestamp()
