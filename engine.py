@@ -170,7 +170,7 @@ class engine:
             print "Warning: before send,", fd, "has been closed."
             return -1
         try:
-            if gvar.Client:
+            if gvar.Debug:
                 print util.timestamp(), "to send_out", fd
             while len(self.outcache[fd]) > 0:
                 written = self.fd2con.get(fd).send(self.outcache[fd])
@@ -180,7 +180,7 @@ class engine:
             if self.onOutHandlers.get(fd):
                 self.onOutHandlers[fd]()
             self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
-            if gvar.Client:
+            if gvar.Debug:
                 print util.timestamp(), "send_out!!!!!!!", fd
         except socket.error, msg:
             if msg.errno == errno.EAGAIN:

@@ -1,8 +1,8 @@
-import httpreq
+import util
 import json
 
 def getconfig():
-    body = httpreq.request("http://10.6.131.78:6001")
+    body = util.request("http://10.6.131.78:6001")
     conf = json.loads(body)
     print conf
     ip = conf["ip"] 

@@ -8,26 +8,19 @@ import random
 import time
 import getconfig
 import engine
+import client
 import gvar
 import http_protocol
 import util
 import traceback
-
-def con_send():
-    fd = gvar.Engine().connect(gvar.host, gvar.port)
-    if fd<0:
-        print "Connect fd=-1"
-        wait = random.random()*interval*2
-        gvar.Engine().addtimer(wait, con_send, ())
-        return
-    gvar.Engine().send_nodelay(fd, http_protocol.req_data(fd))
 
 def main():
     fds = []
     print ">>>>>>>>>>>>>connect start:", time.time()
     for i in range(gvar.clients):
         wait = random.random()*60
-        gvar.Engine().addtimer(wait, con_send, ())
+        url = "http://%s:%d/frontier_test/?id=%s_%d" % (gvar.host, gvar.port, util.getip().replace(".", "_"), i)
+        gvar.Engine().addtimer(wait, client.request, (url, None, None, None))
     print "<<<<<<<<<<<<<connect end:", time.time()
 
 if __name__ == '__main__':
