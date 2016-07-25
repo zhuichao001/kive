@@ -4,7 +4,8 @@ import os,sys
 import time
 import heapq
 import signal
-import client
+import dispatcher_client
+import dispatcher_server
 import hub
 import gvar
 import util
@@ -137,7 +138,7 @@ class engine:
         try:
             con, address = svr_con.accept()
             con.setblocking(0)
-            self.register(con, self.receive, hub.on_data)
+            self.register(con, self.receive, dispatcher_server.on_data)
             return 0
         except socket.error, msg:
             if msg.errno != errno.EAGAIN:
@@ -154,7 +155,7 @@ class engine:
             pass
         elif err == errno.EADDRNOTAVAIL: #not available
             return -1
-        self.register(con, self.receive, client.on_data)
+        self.register(con, self.receive, dispatcher_client.on_data)
         return con.fileno()
 
     def send_delay(self, fd, data, seconds=1):

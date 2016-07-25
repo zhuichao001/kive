@@ -2,20 +2,15 @@
 #-*- coding:utf-8 -*-
 
 import sys
-import socket
-import json
 import random
 import time
 import getconfig
 import engine
 import client
 import gvar
-import http_protocol
 import util
-import traceback
 
 def main():
-    fds = []
     print ">>>>>>>>>>>>>connect start:", time.time()
     for i in range(gvar.clients):
         wait = random.random()*60
@@ -26,6 +21,7 @@ def main():
 if __name__ == '__main__':
     gvar.host, gvar.port, gvar.clients, gvar.interval, gvar.at_sec = getconfig.getconfig()
     print gvar.host, gvar.port, gvar.clients, gvar.interval, gvar.at_sec
+
     gvar.SetEngine(engine.engine())
     main()
     gvar.Engine().run()
