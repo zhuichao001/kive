@@ -6,7 +6,6 @@ import socket
 import json
 import random
 import struct
-import hub
 import gvar
 
 def init()

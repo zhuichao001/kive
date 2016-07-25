@@ -6,7 +6,6 @@ import heapq
 import signal
 import dispatcher_client
 import dispatcher_server
-import hub
 import gvar
 import util
 import random
