@@ -1,8 +1,8 @@
 
-eng = None
+g_engine = None
+g_timer = None
 
 Debug = False
-#Debug = True
 
 Client = True
 
@@ -13,8 +13,15 @@ interval = 0
 at_sec = 0
 
 def Engine():
-    return eng
+    global g_engine
+    if not g_engine:
+        import engine
+        g_engine = engine.Engine()
+    return g_engine
 
-def SetEngine(e):
-    global eng
-    eng = e
+def Timer():
+    global g_timer
+    if not g_timer:
+        import timer
+        g_timer = timer.Timer()
+    return g_timer

@@ -27,7 +27,7 @@ def request(url, post=None, headers=None, callback=None):
     if fd<0:
         print "Connect fd=-1"
         wait = random.random()*interval*2
-        gvar.Engine().addtimer(wait, request, (url, post, headers, callback))
+        gvar.Timer().add(wait, request, (url, post, headers, callback))
         return
     dispatcher_client.register(fd, callback)
     gvar.Engine().send_nodelay(fd, http_protocol.req_headers(url, host))

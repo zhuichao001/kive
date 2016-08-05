@@ -11,6 +11,5 @@ import gvar
 
 if __name__ == '__main__':
     gvar.Client = False
-    gvar.SetEngine(engine.engine())
     gvar.Engine().bind(port=6000)
     gvar.Engine().run()

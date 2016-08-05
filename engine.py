@@ -10,9 +10,9 @@ import gvar
 import util
 import random
 import traceback
+from singleton import *
 
-
-class engine:
+class Engine:
     class Status:
         def __init__(self):
             self.n = 0
@@ -69,7 +69,6 @@ class engine:
     def __init__(self):
         self.is_server = False
         self.epoll = select.epoll()
-        self.timers = []
 
         self.fd2con   = {}
         self.incache  = {}
@@ -82,21 +81,15 @@ class engine:
         self.onOutHandlers   = {}
 
         #status
-        self.status = engine.Status()
-        self.addtimer(1, self.updateStatus);
+        self.status = Engine.Status()
+        gvar.Timer().add(1, self.updateStatus);
 
 
     def updateStatus(self):
         if self.status.update() or time.time()-self.status.last_print>10:
             self.status.Print()
-        self.addtimer(1, self.updateStatus);
+        gvar.Timer().add(1, self.updateStatus);
     #def addcycle(self, cycle, callback, args=()); #TODO
-
-    def addtimer(self, after_sec, callback, args=()):
-        heapq.heappush(self.timers, (time.time()+after_sec, callback, args))
-
-    def abtimer(self, at_sec, callback, args=()):
-        heapq.heappush(self.timers, (at_sec, callback, args))
 
     def register(self, con, in_handler, data_handler, out_handler=None, close_handler=None):
         fd = con.fileno()
@@ -159,7 +152,7 @@ class engine:
 
     def send_delay(self, fd, data, seconds=1):
         self.outcache[fd] += data
-        self.addtimer(seconds, self.send_out, (fd, ))
+        gvar.Timer().add(seconds, self.send_out, (fd, ))
 
     def send_nodelay(self, fd, data):
         self.outcache[fd] += data
@@ -198,15 +191,6 @@ class engine:
         while 1:
             self.lookup()
 
-    def lookuptimers(self):
-        now = time.time()
-        while self.timers:
-            sec, callback, args = heapq.heappop(self.timers)
-            if sec<now:
-                callback(*args)
-            else:
-                heapq.heappush(self.timers, (sec, callback, args))
-                return 0.001 if (sec-now)<0.001 else (sec-now)
 
     def receive(self, con):
         fd = con.fileno()
@@ -240,9 +224,8 @@ class engine:
                 return -1
 
     def lookup(self):
-        sec = self.lookuptimers()
-
-        events = self.epoll.poll(sec) #空等时间1毫秒
+        sec = gvar.Timer().watch()    #deal timer and get known of next tick
+        events = self.epoll.poll(sec)
         for fd, event in events:
             con = self.fd2con.get(fd)
             try:
@@ -284,5 +267,5 @@ class engine:
             traceback.print_exc()
 
 if __name__ == '__main__':
-    e=engine()
+    e=Engine()
     e.run()
