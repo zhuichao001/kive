@@ -4,7 +4,7 @@
 import random
 import time
 import getconfig
-import client
+import http_client
 import gvar
 import util
 
@@ -13,7 +13,7 @@ def main():
     for i in range(gvar.clients):
         wait = random.random()*60
         url = "http://%s:%d/frontier_test/?id=%s_%d" % (gvar.host, gvar.port, util.getip().replace(".", "_"), i)
-        gvar.Timer().add(wait, client.request, (url, None, None, None))
+        gvar.Timer().add(wait, http_client.request, (url, None, None, None))
     print "<<<<<<<<<<<<<connect end:", time.time()
 
 if __name__ == '__main__':

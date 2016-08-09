@@ -23,6 +23,7 @@ class Timer:
             else:
                 heapq.heappush(self.timers, (sec, callback, args))
                 return 0.001 if (sec-now)<0.001 else (sec-now)
+
 if __name__ == '__main__':
     def ok():
         print "ok"

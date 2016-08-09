@@ -10,7 +10,6 @@ import gvar
 import util
 import random
 import traceback
-from singleton import *
 
 class Engine:
     class Status:
