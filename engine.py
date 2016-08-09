@@ -108,7 +108,7 @@ class Engine:
 
     def send_out(self, fd):
         if not self.fd2con.get(fd):
-            print "Warning: before send,", fd, "has been closed."
+            print >> sys.stderr, "Warning: before send,", fd, "has been closed."
             return -1
         try:
             if gvar.Debug:
@@ -122,17 +122,17 @@ class Engine:
                 self.onOutHandlers[fd]()
             self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
             if gvar.Debug:
-                print util.timestamp(), "send_out!!!!!!!", fd
+                print util.timestamp(), "send_out over, fd=", fd
         except socket.error, msg:
             if msg.errno == errno.EAGAIN:
                 if gvar.Debug:
                     print fd, "send again"
                 self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
             else:
-                print fd, "send faliled", msg
+                print >> sys.stderr, "send faliled, fd=%d, msg=%s" % (fd, msg)
                 self.closeClient(fd)
         except Exception, e:
-            print("Error:%d send failed: err_msg=%s" % (fd, str(err_msg)) )
+            print >> sys.stderr, "Error:%d send failed: err_msg=%s" % (fd, str(err_msg))
             self.closeClient(fd)
 
     def run(self):
@@ -167,7 +167,7 @@ class Engine:
                 self.closeClient(fd)
                 return -1
             else:
-                print "error:fd = %d." % (fd), str(msg)
+                print >> sys.stderr, "error:fd = %d." % (fd), str(msg)
                 self.closeClient(fd)
                 return -1
 
@@ -178,12 +178,12 @@ class Engine:
             con = self.fd2con.get(fd)
             try:
                 if event & select.EPOLLHUP:
-                    print util.timestamp(),"!!!!!!select.EPOLLHUP,fileno=",fd 
+                    print util.timestamp(), "select.EPOLLHUP,fd=", fd
                     if self.onCloseHandlers.get(fd):
                         self.onCloseHandlers[fd]()
                     self.closeClient(fd)
                 elif event & select.EPOLLERR:
-                    print("!!!!!!select.EPOLLERR,fileno=", fd)
+                    print >> sys.stderr, util.timestamp(), "select.EPOLLERR,fd=", fd
                     if self.onCloseHandlers.get(fd):
                         self.onCloseHandlers[fd]()
                     self.closeClient(fd)
@@ -195,7 +195,8 @@ class Engine:
                         if err!=0:
                             break
                 elif event & select.EPOLLOUT:
-                    print util.timestamp(),fd,"select.EPOLLOUT"
+                    if gvar.Debug:
+                        print util.timestamp(),fd,"select.EPOLLOUT"
                     self.send_out(fd)
                 else:
                     print("!!!unknown event:", event)
