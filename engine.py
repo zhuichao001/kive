@@ -19,7 +19,7 @@ class Engine:
 
         self.fd2con   = {}
         self.incache  = {}
-        self.outcache = {} #outcache for send
+        self.outcache = {}
 
         #handlers
         self.inHandlers      = {}
@@ -30,7 +30,6 @@ class Engine:
         #status
         self.status = status.Status()
         gvar.Timer().add(1, self.updateStatus);
-
 
     def updateStatus(self):
         if self.status.update() or time.time()-self.status.last_print>10:
@@ -111,12 +110,8 @@ class Engine:
             print >> sys.stderr, "Warning: before send,", fd, "has been closed."
             return -1
         try:
-            if gvar.Debug:
-                print util.timestamp(), "to send_out", fd
             while len(self.outcache[fd]) > 0:
                 written = self.fd2con.get(fd).send(self.outcache[fd])
-                if gvar.Debug:
-                    print "send_out written:", written
                 self.outcache[fd] = self.outcache[fd][written:]
             if self.onOutHandlers.get(fd):
                 self.onOutHandlers[fd]()
@@ -137,19 +132,18 @@ class Engine:
 
     def run(self):
         while 1:
-            self.lookup()
-
+            self.loop()
 
     def receive(self, con):
         fd = con.fileno()
         try:
             tmp = con.recv(1024000)
-            if tmp: #and not self.incache.get(fd):
+            if tmp:
                 if gvar.Debug:
                     print "READ:", fd, tmp
                 self.incache[fd] = self.incache.get(fd,"") + tmp
                 return 0
-            else: # the oper side closed
+            else: # when the oper side closed
                 if gvar.Client:
                     print "EMPTY READ:", fd, tmp
                 self.closeClient(fd)
@@ -163,7 +157,8 @@ class Engine:
                 self.epoll.modify(fd, select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
                 return 1
             elif msg.errno == errno.EWOULDBLOCK:
-                print fd, "errno.EWOULDBLOCK"
+                if gvar.Debug:
+                    print fd, "errno.EWOULDBLOCK"
                 self.closeClient(fd)
                 return -1
             else:
@@ -171,7 +166,7 @@ class Engine:
                 self.closeClient(fd)
                 return -1
 
-    def lookup(self):
+    def loop(self):
         sec = gvar.Timer().watch()    #deal timer and get known of next tick
         events = self.epoll.poll(sec)
         for fd, event in events:
