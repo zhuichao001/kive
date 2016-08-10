@@ -5,9 +5,15 @@ import http_client
 
 def get(uri, callback):
     def on_response(fd, data):
-        print "RECEIVED:", data
+        print "RECEIVED(GET):", data
         callback(data)
     req = http_client.request(url=uri, callback=on_response)
+
+def post(uri, data, callback):
+    def on_response(fd, data):
+        print "RECEIVED(POST):", data
+        callback(data)
+    req = http_client.request(url=uri, post=data, callback=on_response)
 
 def on_data(data):
     print data
