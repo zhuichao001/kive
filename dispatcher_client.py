@@ -1,3 +1,7 @@
+#!/usr/bin/python
+#-*- coding:utf-8 -*-
+
+import sys
 import debug
 import http_client
 
@@ -16,6 +20,8 @@ def on_http_data(fd, http_body):
 
 def on_socket_data(fd, data):
     if not data.endswith("\r\n0\r\n\r\n"):
+        if debug.Debug:
+            print >>sys.stderr, "WARNING||||||socket data:", data
         return 0
     blocks = data.split("\r\n\r\n")
     body = blocks[1][:]

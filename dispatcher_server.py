@@ -9,6 +9,8 @@ import struct
 import http_server
 import engine
 import debug
+from app import *
+
 
 def on_http_data(fd, http_req):
     eng = engine.Engine()
@@ -20,12 +22,11 @@ def on_http_data(fd, http_req):
     if debug.Debug:
         print fd, url
 
-    id = url[url.rfind("=")+1:]
+    id = url[url.rfind("=")+1:] #TODO
     if debug.Debug:
         print "id:", id
     eng.status.add_remote(fd, id)
-
-    eng.send_delay(fd, http_server.response(url), 0.0001)
+    eng.send_delay(fd, app.serve(url), 0.0001)
 
 def on_socket_data(fd, data):
     if not data.endswith("\r\n\r\n"):

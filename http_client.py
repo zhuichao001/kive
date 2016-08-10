@@ -22,6 +22,7 @@ def request(url, post=None, headers=None, callback=None):
     if idx>0:
         host, port =  res.netloc[:idx], int(res.netloc[idx+1:])
     half_url = url[url.index(res.netloc)+len(res.netloc):]
+
     fd = engine.Engine().connect(host, port)
     if fd<0:
         print "Connect fd=-1"
