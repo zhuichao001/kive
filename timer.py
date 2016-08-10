@@ -1,6 +1,8 @@
 import heapq
 import time
+from singleton import *
 
+@singleton
 class Timer:
     def __init__(self):
         self.timers = []

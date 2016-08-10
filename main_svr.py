@@ -6,10 +6,11 @@ import socket
 import json
 import random
 import engine
-import gvar
+import debug
 
 
 if __name__ == '__main__':
-    gvar.Client = False
-    gvar.Engine().bind(port=6000)
-    gvar.Engine().run()
+    debug.isClient = False
+    eng = engine.Engine()
+    eng.bind(port=6000)
+    eng.run()

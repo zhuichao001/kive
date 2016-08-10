@@ -1,9 +1,10 @@
-import gvar
+import debug
 import http_protocol
+import engine
 
 def response(url):
-    e = gvar.Engine()
-    response = http_protocol.responseData("[Keep-Alive Test connections=%d, msgs=%d, qps=%d, max_qps=%d]" % (e.status.n, e.status.msgs, e.status.qps, e.status.max_qps))
-    if gvar.Debug:
+    eng = engine.Engine()
+    response = http_protocol.responseData("[Keep-Alive Test connections=%d, msgs=%d, qps=%d, max_qps=%d]" % (eng.status.n, eng.status.msgs, eng.status.qps, eng.status.max_qps))
+    if debug.Debug:
         print "sendResponse:", response
     return response

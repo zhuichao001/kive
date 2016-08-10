@@ -1,4 +1,4 @@
-import gvar
+import debug
 import http_client
 
 callbacks = {}
@@ -26,7 +26,7 @@ def on_socket_data(fd, data):
     return len(data)
 
 def on_data(fd, data):
-    if gvar.Debug:
+    if debug.Debug:
     	print "--------------->>>>>>data:\n"
     	print data
     	print "------------------------"

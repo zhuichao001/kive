@@ -2,16 +2,19 @@
 import socket, select, errno
 import os,sys
 import time
+import timer
 import heapq
 import signal
 import dispatcher_client
 import dispatcher_server
-import gvar
+import debug
 import util
 import random
 import traceback
 import status
+from singleton import *
 
+@singleton
 class Engine:
     def __init__(self):
         self.is_server = False
@@ -29,12 +32,13 @@ class Engine:
 
         #status
         self.status = status.Status()
-        gvar.Timer().add(1, self.updateStatus);
+        self.timer = timer.Timer()
+        self.timer.add(1, self.updateStatus);
 
     def updateStatus(self):
         if self.status.update() or time.time()-self.status.last_print>10:
             self.status.Print()
-        gvar.Timer().add(1, self.updateStatus);
+        self.timer.add(1, self.updateStatus);
 
     #def addcycle(self, cycle, callback, args=()) #TODO
 
@@ -99,7 +103,7 @@ class Engine:
 
     def send_delay(self, fd, data, seconds=1):
         self.outcache[fd] += data
-        gvar.Timer().add(seconds, self.send_out, (fd, ))
+        self.timer.add(seconds, self.send_out, (fd, ))
 
     def send_nodelay(self, fd, data):
         self.outcache[fd] += data
@@ -116,11 +120,11 @@ class Engine:
             if self.onOutHandlers.get(fd):
                 self.onOutHandlers[fd]()
             self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
-            if gvar.Debug:
+            if debug.Debug:
                 print util.timestamp(), "send_out over, fd=", fd
         except socket.error, msg:
             if msg.errno == errno.EAGAIN:
-                if gvar.Debug:
+                if debug.Debug:
                     print fd, "send again"
                 self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
             else:
@@ -139,25 +143,25 @@ class Engine:
         try:
             tmp = con.recv(1024000)
             if tmp:
-                if gvar.Debug:
+                if debug.Debug:
                     print "READ:", fd, tmp
                 self.incache[fd] = self.incache.get(fd,"") + tmp
                 return 0
             else: # when the oper side closed
-                if gvar.Client:
+                if debug.isClient:
                     print "EMPTY READ:", fd, tmp
                 self.closeClient(fd)
                 return -1
         except socket.error, msg:
             if msg.errno == errno.EAGAIN :
-                if gvar.Debug:
+                if debug.Debug:
                     print "EAGAIN READ:", fd
                 n = self.onDataHandlers[fd](fd, self.incache[fd])
                 self.incache[fd] = self.incache[fd][n:]
                 self.epoll.modify(fd, select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
                 return 1
             elif msg.errno == errno.EWOULDBLOCK:
-                if gvar.Debug:
+                if debug.Debug:
                     print fd, "errno.EWOULDBLOCK"
                 self.closeClient(fd)
                 return -1
@@ -167,7 +171,7 @@ class Engine:
                 return -1
 
     def loop(self):
-        sec = gvar.Timer().watch()    #deal timer and get known of next tick
+        sec = self.timer.watch()    #deal timer and get known of next tick
         events = self.epoll.poll(sec)
         for fd, event in events:
             con = self.fd2con.get(fd)
@@ -183,14 +187,14 @@ class Engine:
                         self.onCloseHandlers[fd]()
                     self.closeClient(fd)
                 elif event & select.EPOLLIN:
-                    if gvar.Debug:
+                    if debug.Debug:
                         print "select.EPOLLIN"
                     while 1:
                         err = self.inHandlers[fd](con)
                         if err!=0:
                             break
                 elif event & select.EPOLLOUT:
-                    if gvar.Debug:
+                    if debug.Debug:
                         print util.timestamp(),fd,"select.EPOLLOUT"
                     self.send_out(fd)
                 else:
@@ -200,7 +204,7 @@ class Engine:
 
     def closeClient(self, fd):
         try:
-            if gvar.Debug:
+            if debug.Debug:
                 print "closeClient fd=",fd
             self.unregister(fd)
             self.epoll.unregister(fd)
