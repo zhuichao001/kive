@@ -13,19 +13,16 @@ from app import *
 
 
 def on_http_data(fd, http_req):
-    eng = engine.Engine()
     if debug.Debug:
         print "body:", http_req
-    eng.status.msgs += 1
-
     url = http_req[:http_req.find("\r\n")].split(" ")[1]
     if debug.Debug:
         print fd, url
 
-    id = url[url.rfind("=")+1:] #TODO
-    if debug.Debug:
-        print "id:", id
-    eng.status.add_remote(fd, id)
+    eng = engine.Engine()
+    eng.status.msgs += 1
+    eng.status.add_remote(fd, url)
+
     eng.send_delay(fd, app.serve(url), 0.0001)
 
 def on_socket_data(fd, data):

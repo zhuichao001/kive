@@ -26,15 +26,14 @@ def on_socket_data(fd, data):
     blocks = data.split("\r\n\r\n")
     body = blocks[1][:]
     idx = body.find("\r\n")
-    length = int(body[:idx],16)
     body = body[idx+2:]
     on_http_data(fd, body)
     return len(data)
 
 def on_data(fd, data):
     if debug.Debug:
-    	print "--------------->>>>>>data:\n"
-    	print data
-    	print "------------------------"
+        print "--------------->>>>>>data:\n"
+        print data
+        print "<<<<<<--------------------"
     length = on_socket_data(fd, data)
     return length
