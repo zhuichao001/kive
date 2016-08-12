@@ -10,7 +10,7 @@ import http_client
 import util
 import debug
 import json
-import async_curl_module as ascurl
+import async_curl as ascurl
 
 def main(data):
     conf = json.loads(data)
@@ -21,7 +21,7 @@ def main(data):
     for i in range(nclients):
         wait = random.random() * 60
         url = "http://%s:%d/frontier_test/?id=%s_%d" % (host, port, util.getip().replace(".", "_"), i)
-        timer.Timer().add(wait, http_client.request, (url, None, None, None))
+        timer.Timer().add(wait, http_client.request, (url,))
     print "<<<<<<<<<<<<<connect end:", time.time()
 
 if __name__ == '__main__':
