@@ -13,7 +13,7 @@ class App():
     @staticmethod
     def build_route_pattern(route):
         route_regex = re.sub(r'(<\w+>)', r'(?P\1.+)', route)
-        return re.compile("^{}".format(route_regex))
+        return re.compile("^{0}$".format(str(route_regex)))
 
     def route(self, route_str):
         def decorator(f):
@@ -35,15 +35,13 @@ class App():
             kwargs, view_function = route_match
             return view_function(**kwargs)
         else:
-            raise ValueError('Route "{}"" has not been registered'.format(path))
+            raise ValueError('Route "{0}"" has not been registered'.format(path))
 
 app = App()
 
-"""
 @app.route("/frontier_test/\?id=<username>")
 def hello(username):
-    return "Hello {}!".format(username)
+    return "Hello {0}!".format(username)
 
 if __name__ == '__main__':
     print app.serve("/frontier_test/?id=zhuichao01")
-"""
