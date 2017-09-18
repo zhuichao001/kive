@@ -12,7 +12,7 @@ import settings
 import json
 import async_curl as ascurl
 
-def main(data):
+def start(data):
     conf = json.loads(data)
     host, port, nclients, interval, at_sec = conf["ip"], conf["port"], conf["clients"], conf["interval"], conf["at_sec"]    
     print host, port, nclients, interval, at_sec
@@ -26,5 +26,5 @@ def main(data):
 
 if __name__ == '__main__':
     settings.isClient = True
-    ascurl.get("http://127.0.0.1:6000/serviceinfo", main)
+    ascurl.get("http://127.0.0.1:6000/serviceinfo", start)
     engine.Engine().run()

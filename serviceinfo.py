@@ -5,7 +5,7 @@ import json
 import http_protocol
 
 conf_info = {
-    "ip": "10.6.131.78",
+    "ip": "120.77.13.45",
     "port": 6000, 
     "clients": 400,
     "interval": 60,

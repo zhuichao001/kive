@@ -39,9 +39,12 @@ class App():
 
 app = App()
 
+"""
+
 @app.route("/frontier_test/\?id=<username>")
 def hello(username):
     return "Hello {0}!".format(username)
 
 if __name__ == '__main__':
     print app.serve("/frontier_test/?id=zhuichao01")
+"""

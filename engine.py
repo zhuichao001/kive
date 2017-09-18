@@ -40,8 +40,6 @@ class Engine:
             self.status.Print()
         self.timer.add(1, self.updateStatus);
 
-    #def addcycle(self, cycle, callback, args=()) #TODO
-
     def register(self, con, in_handler, data_handler, out_handler=None, close_handler=None):
         fd = con.fileno()
         con.setsockopt(socket.SOL_SOCKET,socket.SO_SNDBUF,4096) 
@@ -129,10 +127,10 @@ class Engine:
                 self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
             else:
                 print >> sys.stderr, "send faliled, fd=%d, msg=%s" % (fd, msg)
-                self.closeClient(fd)
+                self.close(fd)
         except Exception, e:
             print >> sys.stderr, "Error:%d send failed: err_msg=%s" % (fd, str(err_msg))
-            self.closeClient(fd)
+            self.close(fd)
 
     def run(self):
         while 1:
@@ -150,7 +148,7 @@ class Engine:
             else: # when the oper side closed
                 if settings.isClient:
                     print "EMPTY READ:", fd, tmp
-                self.closeClient(fd)
+                self.close(fd)
                 return -1
         except socket.error, msg:
             if msg.errno == errno.EAGAIN :
@@ -163,11 +161,11 @@ class Engine:
             elif msg.errno == errno.EWOULDBLOCK:
                 if settings.Debug:
                     print fd, "errno.EWOULDBLOCK"
-                self.closeClient(fd)
+                self.close(fd)
                 return -1
             else:
                 print >> sys.stderr, "error:fd = %d." % (fd), str(msg)
-                self.closeClient(fd)
+                self.close(fd)
                 return -1
 
     def loop(self):
@@ -180,12 +178,12 @@ class Engine:
                     print util.timestamp(), "select.EPOLLHUP,fd=", fd
                     if self.onCloseHandlers.get(fd):
                         self.onCloseHandlers[fd]()
-                    self.closeClient(fd)
+                    self.close(fd)
                 elif event & select.EPOLLERR:
                     print >> sys.stderr, util.timestamp(), "select.EPOLLERR,fd=", fd
                     if self.onCloseHandlers.get(fd):
                         self.onCloseHandlers[fd]()
-                    self.closeClient(fd)
+                    self.close(fd)
                 elif event & select.EPOLLIN:
                     if settings.Debug:
                         print "select.EPOLLIN"
@@ -202,10 +200,10 @@ class Engine:
             except:
                 traceback.print_exc()
 
-    def closeClient(self, fd):
+    def close(self, fd):
         try:
             if settings.Debug:
-                print "closeClient fd=",fd
+                print "close fd=",fd
             self.unregister(fd)
             self.epoll.unregister(fd)
             if fd in self.fd2con:
