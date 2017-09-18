@@ -2,7 +2,7 @@
 #-*- coding:utf-8 -*-
 
 import sys
-import debug
+import settings
 import http_client
 
 callbacks = {}
@@ -20,7 +20,7 @@ def on_http_data(fd, http_body):
 
 def on_socket_data(fd, data):
     if not data.endswith("\r\n0\r\n\r\n"):
-        if debug.Debug:
+        if settings.Debug:
             print >>sys.stderr, "WARNING||||||socket data:", data
         return 0
     blocks = data.split("\r\n\r\n")
@@ -31,7 +31,7 @@ def on_socket_data(fd, data):
     return len(data)
 
 def on_data(fd, data):
-    if debug.Debug:
+    if settings.Debug:
         print "--------------->>>>>>data:\n"
         print data
         print "<<<<<<--------------------"

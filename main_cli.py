@@ -8,7 +8,7 @@ import sys
 import engine
 import http_client
 import util
-import debug
+import settings
 import json
 import async_curl as ascurl
 
@@ -25,6 +25,6 @@ def main(data):
     print "<<<<<<<<<<<<<connect end:", time.time()
 
 if __name__ == '__main__':
-    debug.isClient = True
+    settings.isClient = True
     ascurl.get("http://127.0.0.1:6000/serviceinfo", main)
     engine.Engine().run()

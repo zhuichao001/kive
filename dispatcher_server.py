@@ -8,15 +8,15 @@ import random
 import struct
 import http_server
 import engine
-import debug
+import settings
 from app import *
 
 
 def on_http_data(fd, http_req):
-    if debug.Debug:
+    if settings.Debug:
         print "body:", http_req
     url = http_req[:http_req.find("\r\n")].split(" ")[1]
-    if debug.Debug:
+    if settings.Debug:
         print fd, url
 
     eng = engine.Engine()
@@ -32,7 +32,7 @@ def on_socket_data(fd, data):
     return len(data)
 
 def on_data(fd, data):
-    if debug.Debug:
+    if settings.Debug:
     	print "--------------->>>>>>data:\n"
     	print data
     	print "------------------------"

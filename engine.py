@@ -7,7 +7,7 @@ import heapq
 import signal
 import dispatcher_client
 import dispatcher_server
-import debug
+import settings
 import util
 import random
 import traceback
@@ -120,11 +120,11 @@ class Engine:
             if self.onOutHandlers.get(fd):
                 self.onOutHandlers[fd]()
             self.epoll.modify(fd, select.EPOLLIN | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
-            if debug.Debug:
+            if settings.Debug:
                 print util.timestamp(), "send_out over, fd=", fd
         except socket.error, msg:
             if msg.errno == errno.EAGAIN:
-                if debug.Debug:
+                if settings.Debug:
                     print fd, "send again"
                 self.epoll.modify(fd, select.EPOLLOUT | select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
             else:
@@ -143,25 +143,25 @@ class Engine:
         try:
             tmp = con.recv(1024000)
             if tmp:
-                if debug.Debug:
+                if settings.Debug:
                     print "READ:", fd, tmp
                 self.incache[fd] = self.incache.get(fd,"") + tmp
                 return 0
             else: # when the oper side closed
-                if debug.isClient:
+                if settings.isClient:
                     print "EMPTY READ:", fd, tmp
                 self.closeClient(fd)
                 return -1
         except socket.error, msg:
             if msg.errno == errno.EAGAIN :
-                if debug.Debug:
+                if settings.Debug:
                     print "EAGAIN READ:", fd
                 n = self.onDataHandlers[fd](fd, self.incache[fd])
                 self.incache[fd] = self.incache[fd][n:]
                 self.epoll.modify(fd, select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
                 return 1
             elif msg.errno == errno.EWOULDBLOCK:
-                if debug.Debug:
+                if settings.Debug:
                     print fd, "errno.EWOULDBLOCK"
                 self.closeClient(fd)
                 return -1
@@ -187,14 +187,14 @@ class Engine:
                         self.onCloseHandlers[fd]()
                     self.closeClient(fd)
                 elif event & select.EPOLLIN:
-                    if debug.Debug:
+                    if settings.Debug:
                         print "select.EPOLLIN"
                     while 1:
                         err = self.inHandlers[fd](con)
                         if err!=0:
                             break
                 elif event & select.EPOLLOUT:
-                    if debug.Debug:
+                    if settings.Debug:
                         print util.timestamp(),fd,"select.EPOLLOUT"
                     self.send_out(fd)
                 else:
@@ -204,7 +204,7 @@ class Engine:
 
     def closeClient(self, fd):
         try:
-            if debug.Debug:
+            if settings.Debug:
                 print "closeClient fd=",fd
             self.unregister(fd)
             self.epoll.unregister(fd)
