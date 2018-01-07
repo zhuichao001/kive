@@ -1,5 +1,5 @@
 import time
-import util
+import kive.common.util as util
 
 class Status:
     def __init__(self):
@@ -54,3 +54,4 @@ class Status:
         print util.hour_min_sec(), "[Status: remotes=%d, connections=%d, msgs=%d, qps=%d, max_qps=%d]" % (self.get_remotes(), self.n, self.msgs, self.qps, self.max_qps)
         self.last_print = time.time()
 
+status = Status()
