@@ -3,7 +3,7 @@
 
 import random
 from urlparse import urlsplit
-import kive.event.timer
+import kive.event.timer as timer
 import kive.event.engine as engine
 import kive.http.http_protocol as http_protocol
 import kive.http.dispatcher_client as dispatcher_client

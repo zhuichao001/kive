@@ -1,6 +1,6 @@
 import heapq
 import time
-from singleton import *
+from kive.common.singleton import *
 
 @singleton
 class Timer:

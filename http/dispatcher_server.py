@@ -7,9 +7,9 @@ import json
 import random
 import struct
 import kive.http.http_server as http_server
-import kive.event.engine as engine
 import kive.config.settings as settings
 from kive.app.app import *
+import kive.status.status as status
 
 
 def on_http_data(fd, http_req):
@@ -19,11 +19,11 @@ def on_http_data(fd, http_req):
     if settings.Debug:
         print fd, url
 
-    eng = engine.Engine()
-    eng.status.msgs += 1
-    eng.status.add_remote(fd, url)
+    status.status.msgs += 1
+    status.status.add_remote(fd, url)
 
-    eng.send_delay(fd, app.serve(url), 0.0001)
+    #TODO
+    #eng.send_delay(fd, app.serve(url), 0.0001)
 
 def on_socket_data(fd, data):
     if not data.endswith("\r\n\r\n"):

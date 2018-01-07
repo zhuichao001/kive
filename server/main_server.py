@@ -2,9 +2,6 @@
 #-*- coding:utf-8 -*-
 
 import sys
-import socket
-import json
-import random
 import kive.event.engine as engine
 import kive.config.settings as settings
 

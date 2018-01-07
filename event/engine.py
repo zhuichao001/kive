@@ -3,12 +3,12 @@ import socket, select, errno
 import sys
 import time
 import traceback
-import kive.event.timer
-import kive.http.dispatcher_client as dispatcher_client
+import kive.event.timer as timer
+#import kive.http.dispatcher_client as dispatcher_client
 import kive.http.dispatcher_server as dispatcher_server
 import kive.config.settings as settings
 import kive.common.util as util
-import kive.epoll.status as status
+import kive.status.status as status
 from kive.common.singleton import *
 
 @singleton
@@ -28,7 +28,7 @@ class Engine:
         self.onOutHandlers   = {}
 
         #status
-        self.status = status.Status()
+        self.status = status.status
         self.timer = timer.Timer()
         self.timer.add(1, self.updateStatus);
 
@@ -83,7 +83,7 @@ class Engine:
                 traceback.print_exc()
             return -1
 
-    def connect(self, ip, port):
+    def connect(self, ip, port, on_connect_handler, on_connect_parameters):
         con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         con.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         con.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -93,7 +93,7 @@ class Engine:
             pass
         elif err == errno.EADDRNOTAVAIL: #not available
             return -1
-        self.register(con, self.receive, dispatcher_client.on_data)
+        self.register(con, self.receive, on_connect_handler(*on_connect_parameters))
         return con.fileno()
 
     def send_delay(self, fd, data, seconds=1):
