@@ -5,9 +5,8 @@ import sys
 import socket
 import json
 import random
-import engine
-import settings
-import serviceinfo
+import kive.event.engine as engine
+import kive.config.settings as settings
 
 
 if __name__ == '__main__':

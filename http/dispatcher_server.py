@@ -6,10 +6,10 @@ import socket
 import json
 import random
 import struct
-import http_server
-import engine
-import settings
-from app import *
+import kive.http.http_server as http_server
+import kive.event.engine as engine
+import kive.config.settings as settings
+from kive.app.app import *
 
 
 def on_http_data(fd, http_req):

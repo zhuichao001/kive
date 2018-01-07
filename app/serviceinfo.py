@@ -1,8 +1,8 @@
 
 import time
-from app import *
 import json
-import http_protocol
+from kive.app.app import *
+import kive.http.http_protocol as http_protocol
 
 conf_info = {
     "ip": "120.77.13.45",
@@ -17,7 +17,5 @@ def service_info():
     response = http_protocol.responseData(json.dumps(conf_info))
     return response
 
-"""
 if __name__ == '__main__':
     print app.serve("/serviceinfo")
-"""

@@ -2,7 +2,7 @@
 #-*- coding:utf-8 -*-
 
 import re
-from singleton import *
+from kive.common.singleton import *
 
 
 @singleton

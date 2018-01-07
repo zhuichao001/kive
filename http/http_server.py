@@ -1,7 +1,8 @@
-import settings
-import http_protocol
-import engine
-from app import *
+
+import kive.config.settings as settings
+import kive.http.http_protocol as http_protocol
+import kive.event.engine as engine
+from kive.app.app import *
 
 @app.route("/frontier_test/\?id=<remoteid>")
 def response_frontier_test(remoteid):

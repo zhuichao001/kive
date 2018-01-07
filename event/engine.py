@@ -1,18 +1,15 @@
 #-*- coding:utf-8 -*-
 import socket, select, errno
-import os,sys
+import sys
 import time
-import timer
-import heapq
-import signal
-import dispatcher_client
-import dispatcher_server
-import settings
-import util
-import random
 import traceback
-import status
-from singleton import *
+import kive.event.timer
+import kive.http.dispatcher_client as dispatcher_client
+import kive.http.dispatcher_server as dispatcher_server
+import kive.config.settings as settings
+import kive.common.util as util
+import kive.epoll.status as status
+from kive.common.singleton import *
 
 @singleton
 class Engine:

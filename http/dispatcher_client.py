@@ -2,8 +2,8 @@
 #-*- coding:utf-8 -*-
 
 import sys
-import settings
-import http_client
+import kive.config.settings as settings
+import kive.http.http_client as http_client
 
 callbacks = {}
 

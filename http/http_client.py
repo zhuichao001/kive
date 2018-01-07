@@ -1,16 +1,12 @@
 #!/usr/bin/python 
 #-*- coding:utf-8 -*-
 
-import sys
-import socket
-import json
 import random
-import struct
-import engine
-import timer
-import http_protocol
 from urlparse import urlsplit
-import dispatcher_client
+import kive.event.timer
+import kive.event.engine as engine
+import kive.http.http_protocol as http_protocol
+import kive.http.dispatcher_client as dispatcher_client
 
 def request(url, post=None, headers=None, callback=None):
     res = urlsplit(url)

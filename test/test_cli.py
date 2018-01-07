@@ -7,9 +7,8 @@ import json
 import random
 import struct
 
-import getconfig
-import http_protocol
-import engine
+import kive.http.http_protocol as http_protocol
+import kive.event.engine as engine
 
 engine = engine.engine()
 
@@ -22,7 +21,7 @@ def timeout(fd):
     engine.addtimer(2, timeout, (fd,))
 
 def test():
-    ip, port, clients, interval, at_sec = getconfig.getconfig()
+    ip, port, clients, interval = "0.0.0.0", 6000, 10, 1
     for i in range(3):
         fd = build(ip, port)
         engine.addtimer(1, timeout, (fd,))

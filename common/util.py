@@ -9,8 +9,6 @@ import time
 import sys
 import urllib, urllib2
 
-Debug = False
-
 def getip(ethname="eth0"):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0X8915, struct.pack('256s', ethname[:15]))[20:24])

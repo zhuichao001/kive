@@ -3,13 +3,12 @@
 
 import random
 import time
-import timer
-import sys
-import engine
-import http_client
-import util
-import settings
 import json
+import kive.event.timer as timer
+import kive.event.engine as engine
+import kive.http.http_client as http_client
+import kive.common.util as util
+import kive.config.settings as settings
 import async_curl as ascurl
 
 def start(data):

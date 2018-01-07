@@ -1,4 +1,4 @@
-import util
+
 
 def req_headers(url, host, is_gzip=False):
     gzip_param = "Accept-Encoding: gzip, deflate, sdch\r\n"

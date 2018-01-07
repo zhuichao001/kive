@@ -1,6 +1,6 @@
-import engine
-import http_client
-import http_client
+import kive.event.engine as engine
+import kive.http.http_client as http_client
+import hkive.http.ttp_client as ttp_client
 
 
 def get(uri, callback):
