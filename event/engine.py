@@ -4,7 +4,6 @@ import sys
 import time
 import traceback
 import kive.event.timer as timer
-#import kive.http.dispatcher_client as dispatcher_client
 import kive.http.dispatcher_server as dispatcher_server
 import kive.config.settings as settings
 import kive.common.util as util
@@ -97,12 +96,10 @@ class Engine:
         return con.fileno()
 
     def send_delay(self, fd, data, seconds=1):
-        print "!!!!!!! call send_delay"  #TODO
         self.outcache[fd] += data
         self.timer.add(seconds, self.send_out, (fd, ))
 
     def send_nodelay(self, fd, data):
-        print "!!!!!!! call send_nodelay"  #TODO
         self.outcache[fd] += data
         self.send_out(fd)
 
@@ -111,7 +108,6 @@ class Engine:
             print >> sys.stderr, "Warning: before send,", fd, "has been closed."
             return -1
         try:
-            print "!!!!!!! call send_out" #TODO
             while len(self.outcache[fd]) > 0:
                 written = self.fd2con.get(fd).send(self.outcache[fd])
                 self.outcache[fd] = self.outcache[fd][written:]
@@ -137,7 +133,6 @@ class Engine:
             self.loop()
 
     def receive(self, con):
-        print "!!!!!!! call receive"  #TODO
         fd = con.fileno()
         try:
             tmp = con.recv(1024000)
@@ -156,7 +151,6 @@ class Engine:
                 if settings.Debug:
                     print "EAGAIN :", fd
                 in_data, out_data = self.onDataHandlers[fd](fd, self.incache[fd])
-                print "after self.onDataHandlers, in_data:", in_data, ", out_data:", out_data
                 self.incache[fd] = in_data
                 self.send_nodelay(fd, out_data)
                 self.epoll.modify(fd, select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
@@ -167,7 +161,7 @@ class Engine:
                 self.close(fd)
                 return -1
             else:
-                print >> sys.stderr, "error:fd = %d." % (fd), str(msg)
+                print >> sys.stderr, "ERROR:fd = %d." % (fd), str(msg)
                 self.close(fd)
                 return -1
 
@@ -204,7 +198,7 @@ class Engine:
     def close(self, fd):
         try:
             if settings.Debug:
-                print "close fd=",fd
+                print "Notation, CLOSE fd=",fd
             self.unregister(fd)
             self.epoll.unregister(fd)
             if fd in self.fd2con:
