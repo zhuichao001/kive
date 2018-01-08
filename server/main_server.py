@@ -10,5 +10,5 @@ if __name__ == '__main__':
     settings.isClient = False
     eng = engine.Engine()
     eng.bind(port=6000)
-    print >>sys.stdout, "listen on 6000"
+    print >>sys.stdout, "LISTEN ON 6000"
     eng.run()

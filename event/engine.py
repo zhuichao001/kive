@@ -182,8 +182,6 @@ class Engine:
                         self.onCloseHandlers[fd]()
                     self.close(fd)
                 elif event & select.EPOLLIN:
-                    if settings.Debug:
-                        print "select.EPOLLIN"
                     while 1:
                         err = self.inHandlers[fd](con)
                         if err!=0:
@@ -193,7 +191,7 @@ class Engine:
                         print util.timestamp(),fd,"select.EPOLLOUT"
                     self.send_out(fd)
                 else:
-                    print("!!!unknown event:", event)
+                    print("WARNING, UNKNOWN event:", event)
             except:
                 traceback.print_exc()
 
