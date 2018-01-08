@@ -1,4 +1,4 @@
 
-Debug = False
+Debug = True
 isClient = False
 

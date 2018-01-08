@@ -19,9 +19,7 @@ def responseData(content):
 Context-Type: text/plain; charset=utf-8\r\n\
 Content-Length: %d\r\n\
 Connection: Keep-Alive\r\n\r\n\
-%s\r\n\
 %s\r\n\r\n\
-0\r\n\r\n\
-""" % (len(content), hex(1+len(content))[2:], content)
+""" % (len(content), content)
     return headers
 

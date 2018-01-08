@@ -97,10 +97,12 @@ class Engine:
         return con.fileno()
 
     def send_delay(self, fd, data, seconds=1):
+        print "!!!!!!! call send_delay"  #TODO
         self.outcache[fd] += data
         self.timer.add(seconds, self.send_out, (fd, ))
 
     def send_nodelay(self, fd, data):
+        print "!!!!!!! call send_nodelay"  #TODO
         self.outcache[fd] += data
         self.send_out(fd)
 
@@ -109,6 +111,7 @@ class Engine:
             print >> sys.stderr, "Warning: before send,", fd, "has been closed."
             return -1
         try:
+            print "!!!!!!! call send_out" #TODO
             while len(self.outcache[fd]) > 0:
                 written = self.fd2con.get(fd).send(self.outcache[fd])
                 self.outcache[fd] = self.outcache[fd][written:]
@@ -134,13 +137,14 @@ class Engine:
             self.loop()
 
     def receive(self, con):
+        print "!!!!!!! call receive"  #TODO
         fd = con.fileno()
         try:
             tmp = con.recv(1024000)
             if tmp:
                 if settings.Debug:
-                    print "READ:", fd, tmp
-                self.incache[fd] = self.incache.get(fd,"") + tmp
+                    print fd, "READ:<<<", tmp,">>>"
+                self.incache[fd] = self.incache.get(fd, "") + tmp
                 return 0
             else: # when the oper side closed
                 if settings.isClient:
@@ -150,9 +154,11 @@ class Engine:
         except socket.error, msg:
             if msg.errno == errno.EAGAIN :
                 if settings.Debug:
-                    print "EAGAIN READ:", fd
-                n = self.onDataHandlers[fd](fd, self.incache[fd])
-                self.incache[fd] = self.incache[fd][n:]
+                    print "EAGAIN :", fd
+                in_data, out_data = self.onDataHandlers[fd](fd, self.incache[fd])
+                print "after self.onDataHandlers, in_data:", in_data, ", out_data:", out_data
+                self.incache[fd] = in_data
+                self.send_nodelay(fd, out_data)
                 self.epoll.modify(fd, select.EPOLLET | select.EPOLLHUP | select.EPOLLERR)
                 return 1
             elif msg.errno == errno.EWOULDBLOCK:
